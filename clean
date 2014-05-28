@@ -1,0 +1,8 @@
+#!/bin/bash
+
+rm *hi
+rm *o
+
+(cd TTT
+rm *hi
+rm *o)
