@@ -1,5 +1,6 @@
 module TTT.Position (
-  Position (..)
+  GameStatus (..)
+ ,Position (..)
  ,dim
  ,size
  ,initPosition
@@ -11,15 +12,19 @@ module TTT.Position (
  ,isMoveValid
  ,opposite
  ,render
+ ,positionStatus
 )  where
 
 import Data.List
 import Data.List.Split
 import Data.Char (intToDigit)
 
+
+
+data GameStatus = Win | Draw | NotOver
+data Position = Position String Char deriving (Show, Eq, Ord)
 -- String = board position
 -- Char refers to whose turn it is
-data Position = Position String Char deriving (Show, Eq, Ord)
 dim = 3
 size :: Int
 size = dim^2
@@ -71,7 +76,9 @@ pixelCoordToCell (x,y) = x' + (3 * y')
           y'    = f y
 
 
-
-
-
+positionStatus :: Position -> GameStatus
+positionStatus pos@(Position board c)
+  | isWinFor pos c            = Win
+  | null (possibleMoves pos)  = Draw
+  | otherwise                 = NotOver
 

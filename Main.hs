@@ -11,6 +11,7 @@ import qualified Graphics.UI.GLUT as GUG -- for specifying which get
 import Data.IORef
 import Control.Monad.State (evalState)
 import qualified Data.Map as M (empty)
+import Data.Char (toLower)
 
 main = do
   (_progName, _args) <- getArgsAndInitialize
@@ -30,28 +31,36 @@ main = do
 -- This is essentially our game loop, because all actions 
 -- are in response to the player clicking the cell where they want to play
 keyboardMouse p key keyState modifiers (Position x y) = do
-  case (key,keyState) of 
-    (MouseButton LeftButton, Up) -> do 
-      pos@(Pos.Position board ch) <- GUG.get p
-      putStrLn (Pos.render pos)
-      let newMove = Pos.pixelCoordToCell (x,y) -- maybe double check if this is working
-      if (Pos.isMoveValid newMove pos) then do 
-        let newPos@(Pos.Position newBoard newCh) = Pos.move pos newMove -- update position
-        if (newPos `Pos.isWinFor` ch) then do 
-          print ch; print "wins";
+  pos@(Pos.Position board ch) <- GUG.get p
+  -- lower case signifies game is over
+  if ch `elem` ['-','x','o'] then do return ()
+  -- else if upper case, the game goes on!
+  else do
+    case (key,keyState) of 
+      (MouseButton LeftButton, Up) -> do 
+        pos@(Pos.Position board ch) <- GUG.get p
+        putStrLn (Pos.render pos)
+        let newMove = Pos.pixelCoordToCell (x,y) -- maybe double check if this is working
+        if (Pos.isMoveValid newMove pos) then do 
+          let newPos@(Pos.Position newB newC) = Pos.move pos newMove -- update position
+          let newStatus = Pos.positionStatus (Pos.Position newB ch)
+          case newStatus of
+            Pos.Win -> do
+              p $=! Pos.Position newB (toLower ch) 
+            Pos.Draw ->
+              p $=! Pos.Position newB '-' 
+            _ -> do
+              let newPos'@(Pos.Position newB' newC') = Pos.move newPos (evalState (Eng.bestMove newPos) M.empty)
+              let newStatus' = Pos.positionStatus (Pos.Position newB' newC)
+              case newStatus' of
+                Pos.Win -> do
+                  p $=! Pos.Position newB' (toLower newC) 
+                Pos.Draw ->
+                  p $=! Pos.Position newB' '-' 
+                _ -> do
         else do
-            print "comp move"
-            putStrLn (Pos.render newPos)
-            let newPos'@(Pos.Position d e) = Pos.move newPos (evalState (Eng.bestMove newPos) M.empty)
-            if (newPos' `Pos.isWinFor` (Pos.opposite ch))
-              then do print (Pos.opposite ch); print "wins";
-              else do 
-                print "user move"
-                putStrLn (Pos.render newPos')
-                p $=! newPos';
-      else do
-          return ()
-    _ -> return ()
+            return ()
+      _ -> return ()
 
 --data Position = Position String Char deriving (Show, Eq, Ord)
 
